@@ -410,12 +410,6 @@ class MainWindow:
             elif (keyId == pyxel.KEY_DOWN):
                 self.pacmanObj.Direction(PACMAN_DIRECTION.DOWN)
 
-
-
-
-
-
-
 def DebugProc():
      pass
 
