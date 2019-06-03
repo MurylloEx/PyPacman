@@ -331,7 +331,7 @@ class MainWindow:
         self.vgBuffer = VgQueueCreateBuffer()
         self.pacmanObj = None
         pyxel.init(wndSize[0], wndSize[1])
-        pyxel.load("C:\\Users\\Murilo\\Desktop\\ZwQuerySystemInformation\\UPE Homework\\Programação 1\\Pacman\\pacman.pyxel")
+        pyxel.load("C:\\Users\\Aluno\\Downloads\\pypacman-master\\pypacman-master\\pacman.pyxel")
         pyxel.run(self.UpdateCallback, self.DrawCallback)
     
     #Atualizando as posições e a dinâmica do jogo. Este método é IMUTÁVEL.
@@ -373,8 +373,8 @@ class MainWindow:
             OpScrWriteTextInPosition(str(GL_FLAG_LIFES), VgSetPoint(100, pyxel.height - 10), 3)
             #Escreve algumas informações básicas de depuração na tela
 
-            #OpScrWriteTextInPosition("Frame: " + str(pyxel.frame_count), VgSetPoint(5, 5), 3)
-            #OpScrWriteTextInPosition("Objetos desenhados: " + str(vgCount), VgSetPoint(5, 15), 3)
+            OpScrWriteTextInPosition("Frame: " + str(pyxel.frame_count), VgSetPoint(5, 5), 3)
+            OpScrWriteTextInPosition("Objetos desenhados: " + str(vgCount), VgSetPoint(5, 15), 3)
         elif (self.gamestate == GAME_STATE.READY):
             #Tela inicial do jogo
             OpScrClearScreen()
@@ -395,8 +395,8 @@ class MainWindow:
             #parei aqui na animação do pacman
             if (self.pacmanObj == None):
                 self.pacmanObj = Pacman(VgSetPoint(200, 25), 1, PACMAN_DIRECTION.LEFT)
-            objetoFantasma = VgAcquireObjectIndex(PACMAN_SPRITES_POS.GHOST_BLUE_UP, PACMAN_SPRITES_ID.GHOST_BLUE_UP, 0, GL_FLAG_SPRITE_SIZE, 0)
-            VgQueueAddObjectToDraw(self.vgBuffer, objetoFantasma, 0, VgSetPoint(200, 50))
+            #objetoFantasma = VgAcquireObjectIndex(PACMAN_SPRITES_POS.GHOST_BLUE_UP, PACMAN_SPRITES_ID.GHOST_BLUE_UP, 0, GL_FLAG_SPRITE_SIZE, 0)
+            #VgQueueAddObjectToDraw(self.vgBuffer, objetoFantasma, 0, VgSetPoint(200, 50))
 
 
     #Depois de processar as teclas
@@ -443,23 +443,38 @@ class MainWindow:
         pyxel.rect(14, 0, 14 + 2, SCR_HEIGHT, COLOR_WALL)
 
         #Bloco 1
-        pyxel.rectb(33, 19, 33 + 25, 19 + 20, COLOR_WALL)
+        pyxel.rect(33, 19, 33 + 25, 19 + 20, COLOR_WALL)
         #Bloco 2
-        pyxel.rectb(75, 19, 75 + 35, 19 + 20, COLOR_WALL)
+        pyxel.rect(75, 19, 75 + 35, 19 + 20, COLOR_WALL)
 
         #Divisória central superior
         pyxel.rect(127, 0, 127 + 3, 39, COLOR_WALL)
 
         #Bloco 3
-        pyxel.rectb(147, 19, 147 + 35, 19 + 20, COLOR_WALL)
+        pyxel.rect(147, 19, 147 + 35, 19 + 20, COLOR_WALL)
         #Bloco 4
-        pyxel.rectb(199, 19, 199 + 25, 19 + 20, COLOR_WALL)
+        pyxel.rect(199, 19, 199 + 25, 19 + 20, COLOR_WALL)
 
         #Margem lateral direita
         pyxel.rect(241, 0, 241 + 2, SCR_HEIGHT, COLOR_WALL)
 
+        #Bloco 5
         pyxel.rect(33, 56, 33 + 25, 56 + 10, COLOR_WALL)
 
+        #Bloco 6
+        pyxel.rect(75, 56, 75 + 2, 56 + 35, COLOR_WALL)
+        
+        #Bloco 7
+        pyxel.rect(94, 56, 163,  56 + 10, COLOR_WALL)
+
+        #Bloco 8
+        pyxel.rect(180, 56, 180 + 2, 56 + 35, COLOR_WALL)
+
+        #Bloco 9
+        pyxel.rect(199, 56, 199 + 25, 56 + 10, COLOR_WALL)
+
+
+        #pyxel.rectb(75, 56, 75 + 35, 56 + 10, COLOR_WALL)
 
 
 
