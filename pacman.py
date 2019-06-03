@@ -165,6 +165,14 @@ def VgQueueGetElementsById(pVgBuffer: list, objId: PACMAN_SPRITES_ID):
             vgElements.append(VgObject)
     return vgElements
 
+#Move o conteúdo de um buffer VG para outro buffer VG.
+#Essa função reduz o desempenho do jogo se for usada excessivamente.
+def VgQueueMoveBuffer(pToVgBuffer: list, pFromVgBuffer: list):
+    vgObj = VgQueueNextObjectToDraw(pFromVgBuffer)
+    while (vgObj != None):
+        VgQueueAddObjectToDraw(pToVgBuffer, vgObj[0], vgObj[1], vgObj[2], vgObj[3])
+        vgObj = VgQueueNextObjectToDraw(pFromVgBuffer)
+
 #endregion
 
 #region Funções operação de tela (Operation Screen) para desenhar o jogo.
@@ -246,7 +254,7 @@ class Pacman:
     def SpritePos(self):
         if (self.Direction() == PACMAN_DIRECTION.LEFT):
             if (self.moving == True):
-                if (pyxel.frame_count % 5 == 0 or pyxel.frame_count % 5 == 1):
+                if (pyxel.frame_count % 6 == 0 or pyxel.frame_count % 6 == 1):
                     return PACMAN_SPRITES_POS.PACMAN_CLOSED
                 else:
                     return PACMAN_SPRITES_POS.PACMAN_OPEN_LEFT
@@ -255,7 +263,7 @@ class Pacman:
 
         elif (self.Direction() == PACMAN_DIRECTION.RIGHT):
             if (self.moving == True):
-                if (pyxel.frame_count % 5 == 0 or pyxel.frame_count % 5 == 1):
+                if (pyxel.frame_count % 6 == 0 or pyxel.frame_count % 6 == 1):
                     return PACMAN_SPRITES_POS.PACMAN_CLOSED
                 else:
                     return PACMAN_SPRITES_POS.PACMAN_OPEN_RIGHT
@@ -264,7 +272,7 @@ class Pacman:
 
         elif (self.Direction() == PACMAN_DIRECTION.DOWN):
             if (self.moving == True):
-                if (pyxel.frame_count % 5 == 0 or pyxel.frame_count % 5 == 1):
+                if (pyxel.frame_count % 6 == 0 or pyxel.frame_count % 6 == 1):
                     return PACMAN_SPRITES_POS.PACMAN_CLOSED
                 else:
                     return PACMAN_SPRITES_POS.PACMAN_OPEN_DOWN
@@ -273,7 +281,7 @@ class Pacman:
 
         elif (self.Direction() == PACMAN_DIRECTION.UP):
             if (self.moving == True):
-                if (pyxel.frame_count % 5 == 0 or pyxel.frame_count % 5 == 1):
+                if (pyxel.frame_count % 6 == 0 or pyxel.frame_count % 6 == 1):
                     return PACMAN_SPRITES_POS.PACMAN_CLOSED
                 else:
                     return PACMAN_SPRITES_POS.PACMAN_OPEN_UP
@@ -300,13 +308,21 @@ class Pacman:
 
         elif (spritePos == PACMAN_SPRITES_POS.PACMAN_OPEN_UP):
             return PACMAN_SPRITES_ID.PACMAN_OPEN_UP
-
+    
     def MatchPos(self):
         pass
 
+#Flags globais de Vida, Score e tamanho de sprites
 GL_FLAG_SPRITE_SIZE: tuple      = VgSetSize(16, 16)
+GL_FLAG_MAP_SPRITE_SIZE: tuple  = VgSetSize(4, 4)
 GL_FLAG_SCORE: int              = 0
 GL_FLAG_LIFES: int              = 3
+
+#Flags globais de vetor profundidade
+GL_DEFAULT_MAP_Z    = 0
+GL_DEFAULT_FOOD_Z   = 1
+GL_DEFAULT_GHOST_Z  = 2
+GL_DEFAULT_PACMAN_Z = 3
 
 class MainWindow:
 
@@ -344,6 +360,7 @@ class MainWindow:
     def DrawCallback(self):
         if (self.gamestate == GAME_STATE.RUNNING):
             OpScrClearScreen()
+            self.LoadMap()
             vgCount: int = len(self.vgBuffer)
             nextVgObj = VgQueueNextObjectToDraw(self.vgBuffer)
             while (nextVgObj != None):
@@ -355,8 +372,9 @@ class MainWindow:
             OpScrWriteTextInPosition("Vidas:", VgSetPoint(70, pyxel.height - 10), 7)
             OpScrWriteTextInPosition(str(GL_FLAG_LIFES), VgSetPoint(100, pyxel.height - 10), 3)
             #Escreve algumas informações básicas de depuração na tela
-            OpScrWriteTextInPosition("Frame: " + str(pyxel.frame_count), VgSetPoint(5, 5), 3)
-            OpScrWriteTextInPosition("Objetos desenhados: " + str(vgCount), VgSetPoint(5, 15), 3)
+
+            #OpScrWriteTextInPosition("Frame: " + str(pyxel.frame_count), VgSetPoint(5, 5), 3)
+            #OpScrWriteTextInPosition("Objetos desenhados: " + str(vgCount), VgSetPoint(5, 15), 3)
         elif (self.gamestate == GAME_STATE.READY):
             #Tela inicial do jogo
             OpScrClearScreen()
@@ -367,8 +385,8 @@ class MainWindow:
             OpScrClearScreen()
             vgObjLogo = VgAcquireObjectIndex(PACMAN_SPRITES_POS.PACMAN_LOGO, PACMAN_SPRITES_ID.PACMAN_LOGO, 1, VgSetSize(253, 51))
             OpScrDrawImageByObjectIndex(vgObjLogo, VgSetPoint(0, 50))
-            #pyxel.blt(0, 50, 1, 0, 0, 253, 51)
             OpScrWriteTextInPosition("PRESSIONE \"P\" PARA CONTINUAR O JOGO", VgSetPoint(pyxel.width / 2 - pyxel.width / 4 - 10, pyxel.height / 2), pyxel.frame_count % 16)
+
 
 
     #Antes de processar as teclas
@@ -377,14 +395,16 @@ class MainWindow:
             #parei aqui na animação do pacman
             if (self.pacmanObj == None):
                 self.pacmanObj = Pacman(VgSetPoint(200, 25), 1, PACMAN_DIRECTION.LEFT)
+            objetoFantasma = VgAcquireObjectIndex(PACMAN_SPRITES_POS.GHOST_BLUE_UP, PACMAN_SPRITES_ID.GHOST_BLUE_UP, 0, GL_FLAG_SPRITE_SIZE, 0)
+            VgQueueAddObjectToDraw(self.vgBuffer, objetoFantasma, 0, VgSetPoint(200, 50))
+
 
     #Depois de processar as teclas
     def AfterKeyProcessed(self):
-
         #parei aqui também
         if (self.pacmanObj != None):
             self.pacmanObj.Move()
-            objIndex = VgAcquireObjectIndex(self.pacmanObj.SpritePos(), self.pacmanObj.SpriteId(), 0, GL_FLAG_SPRITE_SIZE)
+            objIndex = VgAcquireObjectIndex(self.pacmanObj.SpritePos(), self.pacmanObj.SpriteId(), 0, GL_FLAG_SPRITE_SIZE, 0)
             #print(objIndex)
             VgQueueAddObjectToDraw(self.vgBuffer, objIndex, 1, VgSetPoint(self.pacmanObj.Position()[0], self.pacmanObj.Position()[1]))
 
@@ -409,6 +429,39 @@ class MainWindow:
                 self.pacmanObj.Direction(PACMAN_DIRECTION.UP)
             elif (keyId == pyxel.KEY_DOWN):
                 self.pacmanObj.Direction(PACMAN_DIRECTION.DOWN)
+
+    #Carrega o mapa no frame atual
+    def LoadMap(self):
+        SCR_WIDTH   = pyxel.width - 1
+        SCR_HEIGHT  = pyxel.height - 1
+        COLOR_WALL  = 13
+
+        #Margem superior
+        pyxel.rect(14, 0, SCR_WIDTH - 14, 2, COLOR_WALL)
+
+        #Margem lateral esquerda
+        pyxel.rect(14, 0, 14 + 2, SCR_HEIGHT, COLOR_WALL)
+
+        #Bloco 1
+        pyxel.rectb(33, 19, 33 + 25, 19 + 20, COLOR_WALL)
+        #Bloco 2
+        pyxel.rectb(75, 19, 75 + 35, 19 + 20, COLOR_WALL)
+
+        #Divisória central superior
+        pyxel.rect(127, 0, 127 + 3, 39, COLOR_WALL)
+
+        #Bloco 3
+        pyxel.rectb(147, 19, 147 + 35, 19 + 20, COLOR_WALL)
+        #Bloco 4
+        pyxel.rectb(199, 19, 199 + 25, 19 + 20, COLOR_WALL)
+
+        #Margem lateral direita
+        pyxel.rect(241, 0, 241 + 2, SCR_HEIGHT, COLOR_WALL)
+
+        pyxel.rect(33, 56, 33 + 25, 56 + 10, COLOR_WALL)
+
+
+
 
 def DebugProc():
      pass
