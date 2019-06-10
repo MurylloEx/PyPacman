@@ -331,7 +331,7 @@ class MainWindow:
         self.vgBuffer = VgQueueCreateBuffer()
         self.pacmanObj = None
         pyxel.init(wndSize[0], wndSize[1])
-        pyxel.load("C:\\Users\\Aluno\\Downloads\\pypacman-master\\pypacman-master\\pacman.pyxel")
+        pyxel.load("C:\\Users\\Murilo\\Desktop\\ZwQuerySystemInformation\\UPE Homework\\Programação 1\\Pacman\\pacman.pyxel")
         pyxel.run(self.UpdateCallback, self.DrawCallback)
     
     #Atualizando as posições e a dinâmica do jogo. Este método é IMUTÁVEL.
@@ -438,40 +438,36 @@ class MainWindow:
 
         #Margem superior
         pyxel.rect(14, 0, SCR_WIDTH - 14, 2, COLOR_WALL)
-
         #Margem lateral esquerda
         pyxel.rect(14, 0, 14 + 2, SCR_HEIGHT, COLOR_WALL)
-
         #Bloco 1
         pyxel.rect(33, 19, 33 + 25, 19 + 20, COLOR_WALL)
         #Bloco 2
         pyxel.rect(75, 19, 75 + 35, 19 + 20, COLOR_WALL)
-
         #Divisória central superior
         pyxel.rect(127, 0, 127 + 3, 39, COLOR_WALL)
-
         #Bloco 3
         pyxel.rect(147, 19, 147 + 35, 19 + 20, COLOR_WALL)
         #Bloco 4
         pyxel.rect(199, 19, 199 + 25, 19 + 20, COLOR_WALL)
-
         #Margem lateral direita
         pyxel.rect(241, 0, 241 + 2, SCR_HEIGHT, COLOR_WALL)
-
         #Bloco 5
         pyxel.rect(33, 56, 33 + 25, 56 + 10, COLOR_WALL)
-
         #Bloco 6
-        pyxel.rect(75, 56, 75 + 2, 56 + 35, COLOR_WALL)
-        
+        pyxel.rect(75, 56, 75 + 2, 56 + 50, COLOR_WALL)
         #Bloco 7
-        pyxel.rect(94, 56, 163,  56 + 10, COLOR_WALL)
-
+        pyxel.rect(94, 56, 163, 56 + 10, COLOR_WALL)
         #Bloco 8
-        pyxel.rect(180, 56, 180 + 2, 56 + 35, COLOR_WALL)
-
+        pyxel.rect(180, 56, 180 + 2, 56 + 50, COLOR_WALL)
         #Bloco 9
         pyxel.rect(199, 56, 199 + 25, 56 + 10, COLOR_WALL)
+        #Divisoria horizontal do bloco 6
+        pyxel.rect(77, 83, 110, 66 + 19, COLOR_WALL)
+        #Divisoria vertical do bloco 7
+        pyxel.rect(127, 66, 130, 66 + 19, COLOR_WALL)
+        #Divisoria horizontal do bloco 8
+        pyxel.rect(147, 83, 180, 66 + 19, COLOR_WALL)
 
 
         #pyxel.rectb(75, 56, 75 + 35, 56 + 10, COLOR_WALL)
