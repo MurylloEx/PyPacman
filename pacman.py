@@ -373,8 +373,8 @@ class MainWindow:
             OpScrWriteTextInPosition(str(GL_FLAG_LIFES), VgSetPoint(100, pyxel.height - 10), 3)
             #Escreve algumas informações básicas de depuração na tela
 
-            OpScrWriteTextInPosition("Frame: " + str(pyxel.frame_count), VgSetPoint(5, 5), 3)
-            OpScrWriteTextInPosition("Objetos desenhados: " + str(vgCount), VgSetPoint(5, 15), 3)
+            #OpScrWriteTextInPosition("Frame: " + str(pyxel.frame_count), VgSetPoint(5, 5), 3)
+            #OpScrWriteTextInPosition("Objetos desenhados: " + str(vgCount), VgSetPoint(5, 15), 3)
         elif (self.gamestate == GAME_STATE.READY):
             #Tela inicial do jogo
             OpScrClearScreen()
@@ -439,7 +439,7 @@ class MainWindow:
         #Margem superior
         pyxel.rect(14, 0, SCR_WIDTH - 14, 2, COLOR_WALL)
         #Margem lateral esquerda
-        pyxel.rect(14, 0, 14 + 2, SCR_HEIGHT, COLOR_WALL)
+        pyxel.rect(14, 0, 14 + 2, SCR_HEIGHT - 20, COLOR_WALL)
         #Bloco 1
         pyxel.rect(33, 19, 33 + 25, 19 + 20, COLOR_WALL)
         #Bloco 2
@@ -451,15 +451,15 @@ class MainWindow:
         #Bloco 4
         pyxel.rect(199, 19, 199 + 25, 19 + 20, COLOR_WALL)
         #Margem lateral direita
-        pyxel.rect(241, 0, 241 + 2, SCR_HEIGHT, COLOR_WALL)
+        pyxel.rect(241, 0, 241 + 2, SCR_HEIGHT - 20, COLOR_WALL)
         #Bloco 5
         pyxel.rect(33, 56, 33 + 25, 56 + 10, COLOR_WALL)
         #Bloco 6
-        pyxel.rect(75, 56, 75 + 2, 56 + 50, COLOR_WALL)
+        pyxel.rect(75, 56, 75 + 2, 56 + 60, COLOR_WALL)
         #Bloco 7
         pyxel.rect(94, 56, 163, 56 + 10, COLOR_WALL)
         #Bloco 8
-        pyxel.rect(180, 56, 180 + 2, 56 + 50, COLOR_WALL)
+        pyxel.rect(180, 56, 180 + 2, 56 + 60, COLOR_WALL)
         #Bloco 9
         pyxel.rect(199, 56, 199 + 25, 56 + 10, COLOR_WALL)
         #Divisoria horizontal do bloco 6
@@ -468,9 +468,22 @@ class MainWindow:
         pyxel.rect(127, 66, 130, 66 + 19, COLOR_WALL)
         #Divisoria horizontal do bloco 8
         pyxel.rect(147, 83, 180, 66 + 19, COLOR_WALL)
+        #Buraco do centro
+        pyxel.rectb(94, 102, 163, 160, COLOR_WALL)
+        
+        pyxel.rect(75, 133, 75 + 2, 179, COLOR_WALL)
+        pyxel.rect(180, 133, 180 + 2, 179, COLOR_WALL)
+        pyxel.rect(94, 177, 163, 179, COLOR_WALL)
+        
+        pyxel.rect(33, 66 + 17, 33 + 25, 116, COLOR_WALL)
+        pyxel.rect(199, 66 + 17, 199 + 25, 116, COLOR_WALL)
 
+        pyxel.rect(33, 116 + 17, 33 + 25, 179, COLOR_WALL)
+        pyxel.rect(199, 116 + 17, 199 + 25, 179, COLOR_WALL)
 
-        #pyxel.rectb(75, 56, 75 + 35, 56 + 10, COLOR_WALL)
+        #pyxel.rect(33, 179 + 17, 199, 179 + 2, COLOR_WALL)
+
+        pyxel.rect(14, SCR_HEIGHT - 22, SCR_WIDTH - 14, SCR_HEIGHT - 20, COLOR_WALL)
 
 
 
