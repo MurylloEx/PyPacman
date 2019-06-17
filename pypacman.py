@@ -1,6 +1,7 @@
 import pyxel
 from enum import Enum, IntEnum
 from random import randint
+import pygame
 
 #region Enumeradores do jogo.
 
@@ -183,7 +184,7 @@ def VgQueueGetElementsById(pVgBuffer: list, objId: PACMAN_SPRITES_ID):
 def VgQueueMoveBuffer(pToVgBuffer: list, pFromVgBuffer: list):
     vgObj = VgQueueNextObjectToDraw(pFromVgBuffer)
     while (vgObj != None):
-        VgQueueAddObjectToDraw(pToVgBuffer, vgObj[0], vgObj[1], vgObj[2], vgObj[3])
+        VgQueueAddObjectToDraw(pToVgBuffer, vgObj[0], vgObj[1], (vgObj[3][0], vgObj[3][1]))
         vgObj = VgQueueNextObjectToDraw(pFromVgBuffer)
 
 #Copia o conteúdo de um buffer VG para outro buffer VG.
@@ -402,16 +403,16 @@ class Pacman:
     def MatchPos(self, startPos: tuple, endPos: tuple, nextPos: tuple):
         pacPosS = nextPos
         pacPosE = VgSetPoint(pacPosS[0] + 15, pacPosS[1] + 15)
-        wallSzX : int = (endPos[0] - startPos[0]) + 0
-        wallSzY : int = (endPos[1] - startPos[1]) + 0
-        bCond1 : bool = (pacPosE[0] >= startPos[0] >= pacPosS[0] and pacPosE[1] >= startPos[1] >= pacPosS[1]) 
-        bCond2 : bool = (pacPosE[0] >= endPos[0] >= pacPosS[0] and pacPosE[1] >= endPos[1] >= pacPosS[1])
-        bCond3 : bool = (pacPosE[0] >= startPos[0] + wallSzX >= pacPosS[0] and pacPosE[1] >= startPos[1] >= pacPosS[1])
-        bCond4 : bool = (pacPosE[0] >= startPos[0] >= pacPosS[0] and pacPosE[1] >= startPos[1] + wallSzY >= pacPosS[1])
-        bCond5 : bool = (endPos[0] >= pacPosS[0] >= startPos[0] and endPos[1] >= pacPosS[1] >= startPos[1])
-        bCond6 : bool = (endPos[0] >= pacPosE[0] >= startPos[0] and endPos[1] >= pacPosE[1] >= startPos[1])
-        bCond7 : bool = (endPos[0] >= pacPosS[0] + 15 >= startPos[0] and endPos[1] >= pacPosS[1] >= startPos[1])
-        bCond8 : bool = (endPos[0] >= pacPosS[0] >= startPos[0] and endPos[1] >= pacPosS[1] + 15 >= startPos[1])
+        wallSzX : int = (endPos[0] - startPos[0])
+        wallSzY : int = (endPos[1] - startPos[1])
+        bCond1 : bool = (pacPosE[0] >= startPos[0]              >= pacPosS[0]   and pacPosE[1]  >= startPos[1]              >= pacPosS[1]) 
+        bCond2 : bool = (pacPosE[0] >= endPos[0]                >= pacPosS[0]   and pacPosE[1]  >= endPos[1]                >= pacPosS[1])
+        bCond3 : bool = (pacPosE[0] >= startPos[0] + wallSzX    >= pacPosS[0]   and pacPosE[1]  >= startPos[1]              >= pacPosS[1])
+        bCond4 : bool = (pacPosE[0] >= startPos[0]              >= pacPosS[0]   and pacPosE[1]  >= startPos[1] + wallSzY    >= pacPosS[1])
+        bCond5 : bool = (endPos[0]  >= pacPosS[0]               >= startPos[0]  and endPos[1]   >= pacPosS[1]               >= startPos[1])
+        bCond6 : bool = (endPos[0]  >= pacPosE[0]               >= startPos[0]  and endPos[1]   >= pacPosE[1]               >= startPos[1])
+        bCond7 : bool = (endPos[0]  >= pacPosS[0] + 15          >= startPos[0]  and endPos[1]   >= pacPosS[1]               >= startPos[1])
+        bCond8 : bool = (endPos[0]  >= pacPosS[0]               >= startPos[0]  and endPos[1]   >= pacPosS[1] + 15          >= startPos[1])
         return (bCond1 or bCond2 or bCond3 or bCond4 or bCond5 or bCond6 or bCond7 or bCond8)
     
     def CheckForEat(self, pVgFoodBuffer: list, ghosts: list, pVgBuffer: list):
@@ -439,7 +440,7 @@ class Pacman:
                 dx: float = abs(pacPos[0] - (pVgBuffer[k][2][0] + 7.5))
                 dy: float = abs(pacPos[1] - (pVgBuffer[k][2][1] + 7.5))
                 drel: float = abs((dx**2 + dy**2)**1/2)
-                if (drel <= 40):
+                if (drel <= 50):
                     if (pVgBuffer[k][0][2] == PACMAN_SPRITES_ID.GHOST_BLUE_DOWN or 
                         pVgBuffer[k][0][2] == PACMAN_SPRITES_ID.GHOST_BLUE_UP or
                         pVgBuffer[k][0][2] == PACMAN_SPRITES_ID.GHOST_BLUE_LEFT or
@@ -756,7 +757,7 @@ class MainWindow:
         self.pinkGhost = None
         pyxel.init(wndSize[0], wndSize[1], fps=40)
         pyxel.mouse(True)
-        pyxel.load("C:\\Users\\Murilo\\Desktop\\ZwQuerySystemInformation\\UPE Homework\\Programação 1\\Pacman\\pacman.pyxel")
+        pyxel.load("C:\\Users\\Aluno\\Desktop\\pacman.pyxel")
         pyxel.run(self.UpdateCallback, self.DrawCallback)
     
     #Atualizando as posições e a dinâmica do jogo. Este método é IMUTÁVEL.
