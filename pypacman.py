@@ -1,5 +1,6 @@
 import pyxel
 from enum import Enum, IntEnum
+from random import randint
 
 #region Enumeradores do jogo.
 
@@ -74,7 +75,7 @@ class PACMAN_SPRITES_POS(tuple):
     GHOST_BLUE_UP           = (48, 128)
     #Fantasminhas comestíveis
     GHOST_EATABLE_DARK      = (0, 160)
-    GHOST_EATABLE_WHITE     = (0, 160)
+    GHOST_EATABLE_WHITE     = (16, 160)
     #Olhos dos fantasminhas
     GHOST_EYES_LEFT         = (0,  144)
     GHOST_EYES_RIGHT        = (16, 144)
@@ -92,6 +93,18 @@ class PACMAN_DIRECTION(IntEnum):
     LEFT    = 1
     UP      = 2
     DOWN    = 3
+
+class GHOST_DIRECTION(IntEnum):
+    RIGHT   = 0
+    LEFT    = 1
+    UP      = 2
+    DOWN    = 3
+
+class GHOST_COLOR(IntEnum):
+    COLOR_RED       = 1
+    COLOR_ORANGE    = 2
+    COLOR_BLUE      = 3
+    COLOR_PINK      = 4
 
 class GAME_STATE(IntEnum):
     PAUSED  = 0x0000
@@ -401,12 +414,12 @@ class Pacman:
         bCond8 : bool = (endPos[0] >= pacPosS[0] >= startPos[0] and endPos[1] >= pacPosS[1] + 15 >= startPos[1])
         return (bCond1 or bCond2 or bCond3 or bCond4 or bCond5 or bCond6 or bCond7 or bCond8)
     
-    def CheckForEat(self, pVgFoodBuffer: list):
+    def CheckForEat(self, pVgFoodBuffer: list, ghosts: list, pVgBuffer: list):
         pacPos: tuple = VgSetPoint(self.Position()[0] + 7.5, self.Position()[1] + 7.5)
         for k in range(len(pVgFoodBuffer)):
             if (k <= len(pVgFoodBuffer) - 1):
-                dx: int = abs(pacPos[0] - (pVgFoodBuffer[k][2][0] + 7.5))
-                dy: int = abs(pacPos[1] - (pVgFoodBuffer[k][2][1] + 7.5))
+                dx: float = abs(pacPos[0] - (pVgFoodBuffer[k][2][0] + 7.5))
+                dy: float = abs(pacPos[1] - (pVgFoodBuffer[k][2][1] + 7.5))
                 drel: float = abs((dx**2 + dy**2)**1/2)
                 if (drel <= 20):
                     global GL_FLAG_SCORE
@@ -416,10 +429,319 @@ class Pacman:
                         break
                     if (pVgFoodBuffer[k][0][2] == PACMAN_SPRITES_ID.BIG_WHITE_FOOD):
                         pVgFoodBuffer.remove(pVgFoodBuffer[k])
+                        for k in range(len(ghosts)):
+                            ghosts[k].Eatable(True)
                         GL_FLAG_SCORE += 200
                         break
-                    print("s")
+                        
+        for k in range(len(pVgBuffer)):
+            if (k <= len(pVgBuffer) - 1):
+                dx: float = abs(pacPos[0] - (pVgBuffer[k][2][0] + 7.5))
+                dy: float = abs(pacPos[1] - (pVgBuffer[k][2][1] + 7.5))
+                drel: float = abs((dx**2 + dy**2)**1/2)
+                if (drel <= 40):
+                    if (pVgBuffer[k][0][2] == PACMAN_SPRITES_ID.GHOST_BLUE_DOWN or 
+                        pVgBuffer[k][0][2] == PACMAN_SPRITES_ID.GHOST_BLUE_UP or
+                        pVgBuffer[k][0][2] == PACMAN_SPRITES_ID.GHOST_BLUE_LEFT or
+                        pVgBuffer[k][0][2] == PACMAN_SPRITES_ID.GHOST_BLUE_RIGHT or
+                        pVgBuffer[k][0][2] == PACMAN_SPRITES_ID.GHOST_RED_DOWN or
+                        pVgBuffer[k][0][2] == PACMAN_SPRITES_ID.GHOST_RED_UP or
+                        pVgBuffer[k][0][2] == PACMAN_SPRITES_ID.GHOST_RED_LEFT or
+                        pVgBuffer[k][0][2] == PACMAN_SPRITES_ID.GHOST_RED_RIGHT or
+                        pVgBuffer[k][0][2] == PACMAN_SPRITES_ID.GHOST_ORANGE_DOWN or
+                        pVgBuffer[k][0][2] == PACMAN_SPRITES_ID.GHOST_ORANGE_UP or
+                        pVgBuffer[k][0][2] == PACMAN_SPRITES_ID.GHOST_ORANGE_LEFT or
+                        pVgBuffer[k][0][2] == PACMAN_SPRITES_ID.GHOST_ORANGE_RIGHT or
+                        pVgBuffer[k][0][2] == PACMAN_SPRITES_ID.GHOST_PINK_DOWN or
+                        pVgBuffer[k][0][2] == PACMAN_SPRITES_ID.GHOST_PINK_UP or
+                        pVgBuffer[k][0][2] == PACMAN_SPRITES_ID.GHOST_PINK_LEFT or
+                        pVgBuffer[k][0][2] == PACMAN_SPRITES_ID.GHOST_PINK_RIGHT):
+                        print("PACMAN MORREU, TENTOU COMER UM FANTASMINHA!")
+                        break
+                    if (pVgBuffer[k][0][2] == PACMAN_SPRITES_ID.GHOST_EATABLE_DARK or
+                        pVgBuffer[k][0][2] == PACMAN_SPRITES_ID.GHOST_EATABLE_WHITE):
+                        print("PACMAN COMEU UM FANTASMINHA!")
 
+class Ghost:
+
+    def __init__(self, initPos: tuple, initVel: int = 1, direction: GHOST_DIRECTION = GHOST_DIRECTION.LEFT, ghostColor: GHOST_COLOR = GHOST_COLOR.COLOR_RED):
+        self.velocity: int = initVel
+        self._direction: GHOST_DIRECTION = direction
+        self.color: GHOST_COLOR = ghostColor
+        self.position: tuple = initPos
+        self.moving: bool = False
+        self.eatable: bool = False
+        self.collisionStatus: bool = False
+        self.bStarted: bool = False
+        self.drel: int = 0
+        self.lastDirection: GHOST_DIRECTION = None
+        self.SpriteId()
+        self.SpritePos()
+
+    def Move(self):
+        if (self.bStarted == False):
+            #Iniciar deslocamento de GL_FLAG_SPRITE_SIZE[0] pixels de forma unidirecional
+            if (self.drel >= GL_FLAG_SPRITE_SIZE[0] + 1):
+                self.bStarted = True
+                self.CancelCollision(False)
+            else:
+                self.drel += 1
+        if (self.bStarted == True):
+            self.GhostNpcIntelligence()
+        if (self._direction == GHOST_DIRECTION.LEFT):
+            #Verificar por colisão, inserir as duas linhas debaixo em um if posteriormente.
+            if (self.Collide((self.position[0] - self.velocity, self.position[1])) == False):
+                self.Position((self.position[0] - self.velocity, self.position[1]))
+                self.moving = True
+        elif (self._direction == GHOST_DIRECTION.RIGHT):
+            if (self.Collide((self.position[0] + self.velocity, self.position[1])) == False):
+                self.Position((self.position[0] + self.velocity, self.position[1]))
+                self.moving = True
+        elif (self._direction == GHOST_DIRECTION.DOWN):
+            if (self.Collide((self.position[0], self.position[1] + self.velocity)) == False):
+                self.Position((self.position[0], self.position[1] + self.velocity))
+                self.moving = True
+        elif (self._direction == GHOST_DIRECTION.UP):
+            if (self.Collide((self.position[0], self.position[1] - self.velocity)) == False):
+                self.Position((self.position[0], self.position[1] - self.velocity))
+                self.moving = True
+
+    def Position(self, newPosition: tuple = None):
+        if (newPosition != None):
+            self.position = newPosition
+            return self.position
+        else:
+            return self.position
+
+    def Direction(self, newDirection: GHOST_DIRECTION = None):
+        if (newDirection != None):
+            if (newDirection == GHOST_DIRECTION.LEFT):
+                if (self.Collide((self.position[0] - self.velocity, self.position[1])) == False):
+                    self._direction = newDirection
+            elif (newDirection == GHOST_DIRECTION.RIGHT):
+                if (self.Collide((self.position[0] + self.velocity, self.position[1])) == False):
+                    self._direction = newDirection
+            elif (newDirection == GHOST_DIRECTION.DOWN):
+                if (self.Collide((self.position[0], self.position[1] + self.velocity)) == False):
+                    self._direction = newDirection
+            elif (newDirection == GHOST_DIRECTION.UP):
+                if (self.Collide((self.position[0], self.position[1] - self.velocity)) == False):
+                    self._direction = newDirection
+            return self._direction
+        else:
+            return self._direction
+    
+    def Velocity(self, newVelocity: int = None):
+        if (newVelocity != None):
+            self.velocity = newVelocity
+            return self.velocity
+        else:
+            return self.velocity
+
+    def SpritePos(self):
+        if (self.eatable == False):
+            #NÃO COMESTÍVEL
+            if (self.color == GHOST_COLOR.COLOR_ORANGE):
+                if (self.Direction() == GHOST_DIRECTION.LEFT):
+                    return PACMAN_SPRITES_POS.GHOST_ORANGE_LEFT
+                elif (self.Direction() == GHOST_DIRECTION.RIGHT):
+                    return PACMAN_SPRITES_POS.GHOST_ORANGE_RIGHT
+                elif (self.Direction() == GHOST_DIRECTION.DOWN):
+                    return PACMAN_SPRITES_POS.GHOST_ORANGE_DOWN
+                elif (self.Direction() == GHOST_DIRECTION.UP):
+                    return PACMAN_SPRITES_POS.GHOST_ORANGE_UP
+            elif (self.color == GHOST_COLOR.COLOR_RED):
+                if (self.Direction() == GHOST_DIRECTION.LEFT):
+                    return PACMAN_SPRITES_POS.GHOST_RED_LEFT
+                elif (self.Direction() == GHOST_DIRECTION.RIGHT):
+                    return PACMAN_SPRITES_POS.GHOST_RED_RIGHT
+                elif (self.Direction() == GHOST_DIRECTION.DOWN):
+                    return PACMAN_SPRITES_POS.GHOST_RED_DOWN
+                elif (self.Direction() == GHOST_DIRECTION.UP):
+                    return PACMAN_SPRITES_POS.GHOST_RED_UP
+            elif (self.color == GHOST_COLOR.COLOR_PINK):
+                if (self.Direction() == GHOST_DIRECTION.LEFT):
+                    return PACMAN_SPRITES_POS.GHOST_PINK_LEFT
+                elif (self.Direction() == GHOST_DIRECTION.RIGHT):
+                    return PACMAN_SPRITES_POS.GHOST_PINK_RIGHT
+                elif (self.Direction() == GHOST_DIRECTION.DOWN):
+                    return PACMAN_SPRITES_POS.GHOST_PINK_DOWN
+                elif (self.Direction() == GHOST_DIRECTION.UP):
+                    return PACMAN_SPRITES_POS.GHOST_PINK_UP
+            elif (self.color == GHOST_COLOR.COLOR_BLUE):
+                if (self.Direction() == GHOST_DIRECTION.LEFT):
+                    return PACMAN_SPRITES_POS.GHOST_BLUE_LEFT
+                elif (self.Direction() == GHOST_DIRECTION.RIGHT):
+                    return PACMAN_SPRITES_POS.GHOST_BLUE_RIGHT
+                elif (self.Direction() == GHOST_DIRECTION.DOWN):
+                    return PACMAN_SPRITES_POS.GHOST_BLUE_DOWN
+                elif (self.Direction() == GHOST_DIRECTION.UP):
+                    return PACMAN_SPRITES_POS.GHOST_BLUE_UP
+        else:
+            #COMESTÍVEL
+            if (pyxel.frame_count % 6 <= 1):
+                return PACMAN_SPRITES_POS.GHOST_EATABLE_WHITE
+            else:
+                return PACMAN_SPRITES_POS.GHOST_EATABLE_DARK
+
+    def SpriteId(self):
+        spritePos = self.SpritePos()
+        if (self.eatable == False):
+            #NÃO COMESTÍVEL
+            if (spritePos == PACMAN_SPRITES_POS.GHOST_ORANGE_UP):
+                return PACMAN_SPRITES_ID.GHOST_ORANGE_UP
+            elif (spritePos == PACMAN_SPRITES_POS.GHOST_ORANGE_DOWN):
+                return PACMAN_SPRITES_ID.GHOST_ORANGE_DOWN
+            elif (spritePos == PACMAN_SPRITES_POS.GHOST_ORANGE_LEFT):
+                return PACMAN_SPRITES_ID.GHOST_ORANGE_LEFT
+            elif (spritePos == PACMAN_SPRITES_POS.GHOST_ORANGE_RIGHT):
+                return PACMAN_SPRITES_ID.GHOST_ORANGE_RIGHT
+            elif (spritePos == PACMAN_SPRITES_POS.GHOST_RED_UP):
+                return PACMAN_SPRITES_ID.GHOST_RED_UP
+            elif (spritePos == PACMAN_SPRITES_POS.GHOST_RED_DOWN):
+                return PACMAN_SPRITES_ID.GHOST_RED_DOWN
+            elif (spritePos == PACMAN_SPRITES_POS.GHOST_RED_LEFT):
+                return PACMAN_SPRITES_ID.GHOST_RED_LEFT
+            elif (spritePos == PACMAN_SPRITES_POS.GHOST_RED_RIGHT):
+                return PACMAN_SPRITES_ID.GHOST_RED_RIGHT
+            elif (spritePos == PACMAN_SPRITES_POS.GHOST_BLUE_UP):
+                return PACMAN_SPRITES_ID.GHOST_BLUE_UP
+            elif (spritePos == PACMAN_SPRITES_POS.GHOST_BLUE_DOWN):
+                return PACMAN_SPRITES_ID.GHOST_BLUE_DOWN
+            elif (spritePos == PACMAN_SPRITES_POS.GHOST_BLUE_LEFT):
+                return PACMAN_SPRITES_ID.GHOST_BLUE_LEFT
+            elif (spritePos == PACMAN_SPRITES_POS.GHOST_BLUE_RIGHT):
+                return PACMAN_SPRITES_ID.GHOST_BLUE_RIGHT
+            elif (spritePos == PACMAN_SPRITES_POS.GHOST_PINK_UP):
+                return PACMAN_SPRITES_ID.GHOST_PINK_UP
+            elif (spritePos == PACMAN_SPRITES_POS.GHOST_PINK_DOWN):
+                return PACMAN_SPRITES_ID.GHOST_PINK_DOWN
+            elif (spritePos == PACMAN_SPRITES_POS.GHOST_PINK_LEFT):
+                return PACMAN_SPRITES_ID.GHOST_PINK_LEFT
+            elif (spritePos == PACMAN_SPRITES_POS.GHOST_PINK_RIGHT):
+                return PACMAN_SPRITES_ID.GHOST_PINK_RIGHT
+        else:
+            #COMESTÍVEL
+            if (spritePos == PACMAN_SPRITES_POS.GHOST_EATABLE_DARK):
+                return PACMAN_SPRITES_ID.GHOST_EATABLE_DARK
+            elif (spritePos == PACMAN_SPRITES_POS.GHOST_EATABLE_WHITE):
+                return PACMAN_SPRITES_ID.GHOST_EATABLE_WHITE
+
+    def Eatable(self, bNewValue: bool = None):
+        if (bNewValue != None):
+            self.eatable = bNewValue
+            return self.eatable
+        else:
+            return self.eatable
+
+    def Collide(self, nextPos: tuple):
+        bCollide : bool = False
+        for k in range(len(GL_MAP_WALLS)):
+            map_wall = GL_MAP_WALLS[k]
+            if (self.MatchPos(map_wall[0], map_wall[1], nextPos) == True):
+                bCollide = True
+                break
+        return (bCollide and not self.collisionStatus)
+
+    def MatchPos(self, startPos: tuple, endPos: tuple, nextPos: tuple):
+        pacPosS = nextPos
+        pacPosE = VgSetPoint(pacPosS[0] + 15, pacPosS[1] + 15)
+        wallSzX : int = (endPos[0] - startPos[0]) + 0
+        wallSzY : int = (endPos[1] - startPos[1]) + 0
+        bCond1 : bool = (pacPosE[0] >= startPos[0] >= pacPosS[0] and pacPosE[1] >= startPos[1] >= pacPosS[1]) 
+        bCond2 : bool = (pacPosE[0] >= endPos[0] >= pacPosS[0] and pacPosE[1] >= endPos[1] >= pacPosS[1])
+        bCond3 : bool = (pacPosE[0] >= startPos[0] + wallSzX >= pacPosS[0] and pacPosE[1] >= startPos[1] >= pacPosS[1])
+        bCond4 : bool = (pacPosE[0] >= startPos[0] >= pacPosS[0] and pacPosE[1] >= startPos[1] + wallSzY >= pacPosS[1])
+        bCond5 : bool = (endPos[0] >= pacPosS[0] >= startPos[0] and endPos[1] >= pacPosS[1] >= startPos[1])
+        bCond6 : bool = (endPos[0] >= pacPosE[0] >= startPos[0] and endPos[1] >= pacPosE[1] >= startPos[1])
+        bCond7 : bool = (endPos[0] >= pacPosS[0] + 15 >= startPos[0] and endPos[1] >= pacPosS[1] >= startPos[1])
+        bCond8 : bool = (endPos[0] >= pacPosS[0] >= startPos[0] and endPos[1] >= pacPosS[1] + 15 >= startPos[1])
+        return (bCond1 or bCond2 or bCond3 or bCond4 or bCond5 or bCond6 or bCond7 or bCond8)
+
+    def CancelCollision(self, bNewStatus: bool):
+        self.collisionStatus = bNewStatus
+
+    def GhostNpcIntelligence(self):
+        LOCK_MOVEMENT: bool = False
+        RIGHT_POS: tuple = VgSetPoint(self.Position()[0] + 1, self.Position()[1])
+        LEFT_POS: tuple = VgSetPoint(self.Position()[0] - 1, self.Position()[1])
+        TOP_POS: tuple = VgSetPoint(self.Position()[0], self.Position()[1] - 1)
+        DOWN_POS: tuple = VgSetPoint(self.Position()[0], self.Position()[1] + 1)
+        bRight: bool = not self.Collide(RIGHT_POS)
+        bLeft: bool = not self.Collide(LEFT_POS)
+        bTop: bool = not self.Collide(TOP_POS)
+        bDown: bool = not self.Collide(DOWN_POS)
+        #print((bRight, bLeft, bTop, bDown, self.color))
+        RND_GHOST_MOVEMENT: int = randint(0, 4)
+        if (LOCK_MOVEMENT == False):
+            if (RND_GHOST_MOVEMENT == 0):
+                if (bRight and self.Direction() != GHOST_DIRECTION.LEFT):
+                    self.Direction(GHOST_DIRECTION.RIGHT)
+                    return None
+                if (bDown and self.Direction() != GHOST_DIRECTION.UP):
+                    self.Direction(GHOST_DIRECTION.DOWN)
+                    return None
+                if (bLeft and self.Direction() != GHOST_DIRECTION.RIGHT):
+                    self.Direction(GHOST_DIRECTION.LEFT)
+                    return None
+                if (bTop and self.Direction() != GHOST_DIRECTION.DOWN):
+                    self.Direction(GHOST_DIRECTION.UP)
+                    return None
+            elif (RND_GHOST_MOVEMENT == 1):
+                if (bDown and self.Direction() != GHOST_DIRECTION.UP):
+                    self.Direction(GHOST_DIRECTION.DOWN)
+                    return None
+                if (bLeft and self.Direction() != GHOST_DIRECTION.RIGHT):
+                    self.Direction(GHOST_DIRECTION.LEFT)
+                    return None
+                if (bRight and self.Direction() != GHOST_DIRECTION.LEFT):
+                    self.Direction(GHOST_DIRECTION.RIGHT)
+                    return None
+                if (bTop and self.Direction() != GHOST_DIRECTION.DOWN):
+                    self.Direction(GHOST_DIRECTION.UP)
+                    return None
+            elif (RND_GHOST_MOVEMENT == 2):
+                if (bDown and self.Direction() != GHOST_DIRECTION.UP):
+                    self.Direction(GHOST_DIRECTION.DOWN)
+                    return None
+                if (bLeft and self.Direction() != GHOST_DIRECTION.RIGHT):
+                    self.Direction(GHOST_DIRECTION.LEFT)
+                    return None
+                if (bTop and self.Direction() != GHOST_DIRECTION.DOWN):
+                    self.Direction(GHOST_DIRECTION.UP)
+                    return None
+                if (bRight and self.Direction() != GHOST_DIRECTION.LEFT):
+                    self.Direction(GHOST_DIRECTION.RIGHT)
+                    return None
+            elif (RND_GHOST_MOVEMENT == 3):
+                if (bTop and self.Direction() != GHOST_DIRECTION.DOWN):
+                    self.Direction(GHOST_DIRECTION.UP)
+                    return None
+                if (bRight and self.Direction() != GHOST_DIRECTION.LEFT):
+                    self.Direction(GHOST_DIRECTION.RIGHT)
+                    return None
+                if (bDown and self.Direction() != GHOST_DIRECTION.UP):
+                    self.Direction(GHOST_DIRECTION.DOWN)
+                    return None
+                if (bLeft and self.Direction() != GHOST_DIRECTION.RIGHT):
+                    self.Direction(GHOST_DIRECTION.LEFT)
+                    return None
+            elif (RND_GHOST_MOVEMENT == 4):
+                if (bLeft and self.Direction() != GHOST_DIRECTION.RIGHT):
+                    self.Direction(GHOST_DIRECTION.LEFT)
+                    return None
+                if (bTop and self.Direction() != GHOST_DIRECTION.DOWN):
+                    self.Direction(GHOST_DIRECTION.UP)
+                    return None
+                if (bRight and self.Direction() != GHOST_DIRECTION.LEFT):
+                    self.Direction(GHOST_DIRECTION.RIGHT)
+                    return None
+                if (bDown and self.Direction() != GHOST_DIRECTION.UP):
+                    self.Direction(GHOST_DIRECTION.DOWN)
+                    return None
+
+
+        
 class MainWindow:
 
     def __init__(self, wndSize):
@@ -428,6 +750,10 @@ class MainWindow:
         self.vgFoodBuffer = VgQueueCreateBuffer()
         self.foodLoaded: bool = False
         self.pacmanObj = None
+        self.orangeGhost = None
+        self.redGhost = None
+        self.blueGhost = None
+        self.pinkGhost = None
         pyxel.init(wndSize[0], wndSize[1], fps=40)
         pyxel.mouse(True)
         pyxel.load("C:\\Users\\Murilo\\Desktop\\ZwQuerySystemInformation\\UPE Homework\\Programação 1\\Pacman\\pacman.pyxel")
@@ -487,26 +813,47 @@ class MainWindow:
             OpScrWriteTextInPosition("PRESSIONE \"P\" PARA CONTINUAR O JOGO", VgSetPoint(pyxel.width / 2 - pyxel.width / 4 - 10, pyxel.height / 2), pyxel.frame_count % 16)
 
 
-
     #Antes de processar as teclas
     def BeforeKeyProcessed(self):
         if (self.gamestate == GAME_STATE.RUNNING):
-            #parei aqui na animação do pacman
             if (self.pacmanObj == None):
                 self.pacmanObj = Pacman(VgSetPoint(121, 40), 1, PACMAN_DIRECTION.LEFT)
-
-            #objetoFantasma = VgAcquireObjectIndex(PACMAN_SPRITES_POS.GHOST_BLUE_UP, PACMAN_SPRITES_ID.GHOST_BLUE_UP, 0, GL_FLAG_SPRITE_SIZE, 0)
-            #VgQueueAddObjectToDraw(self.vgBuffer, objetoFantasma, 0, VgSetPoint(200, 50))
-
+            if (self.orangeGhost == None):
+                self.orangeGhost = Ghost(VgSetPoint(96, 124), 1, GHOST_DIRECTION.LEFT, ghostColor=GHOST_COLOR.COLOR_ORANGE)
+                self.orangeGhost.CancelCollision(True)
+            if (self.redGhost == None):
+                self.redGhost = Ghost(VgSetPoint(146, 124), 1, GHOST_DIRECTION.RIGHT, ghostColor=GHOST_COLOR.COLOR_RED)
+                self.redGhost.CancelCollision(True)
+            if (self.blueGhost == None):
+                self.blueGhost = Ghost(VgSetPoint(121, 144), 1, GHOST_DIRECTION.DOWN, ghostColor=GHOST_COLOR.COLOR_BLUE)
+                self.blueGhost.CancelCollision(True)
+            if (self.pinkGhost == None):
+                self.pinkGhost = Ghost(VgSetPoint(121, 104), 1, GHOST_DIRECTION.UP, ghostColor=GHOST_COLOR.COLOR_PINK)
+                self.pinkGhost.CancelCollision(True)
 
     #Depois de processar as teclas
     def AfterKeyProcessed(self):
-        #parei aqui também
+        if (self.orangeGhost != None):
+            self.orangeGhost.Move()
+            objIndex = VgAcquireObjectIndex(self.orangeGhost.SpritePos(), self.orangeGhost.SpriteId(), 0, GL_FLAG_SPRITE_SIZE, 0)
+            VgQueueAddObjectToDraw(self.vgBuffer, objIndex, GL_DEFAULT_GHOST_Z, self.orangeGhost.Position())
+        if (self.redGhost != None):
+            self.redGhost.Move()
+            objIndex = VgAcquireObjectIndex(self.redGhost.SpritePos(), self.redGhost.SpriteId(), 0, GL_FLAG_SPRITE_SIZE, 0)
+            VgQueueAddObjectToDraw(self.vgBuffer, objIndex, GL_DEFAULT_GHOST_Z, self.redGhost.Position())
+        if (self.blueGhost != None):
+            self.blueGhost.Move()
+            objIndex = VgAcquireObjectIndex(self.blueGhost.SpritePos(), self.blueGhost.SpriteId(), 0, GL_FLAG_SPRITE_SIZE, 0)
+            VgQueueAddObjectToDraw(self.vgBuffer, objIndex, GL_DEFAULT_GHOST_Z, self.blueGhost.Position())
+        if (self.pinkGhost != None):
+            self.pinkGhost.Move()
+            objIndex = VgAcquireObjectIndex(self.pinkGhost.SpritePos(), self.pinkGhost.SpriteId(), 0, GL_FLAG_SPRITE_SIZE, 0)
+            VgQueueAddObjectToDraw(self.vgBuffer, objIndex, GL_DEFAULT_GHOST_Z, self.pinkGhost.Position())
         if (self.pacmanObj != None):
             self.pacmanObj.Move()
-            self.pacmanObj.CheckForEat(self.vgFoodBuffer)
+            self.pacmanObj.CheckForEat(self.vgFoodBuffer, [self.orangeGhost, self.pinkGhost, self.redGhost, self.blueGhost], self.vgBuffer)
             objIndex = VgAcquireObjectIndex(self.pacmanObj.SpritePos(), self.pacmanObj.SpriteId(), 0, GL_FLAG_SPRITE_SIZE, 0)
-            VgQueueAddObjectToDraw(self.vgBuffer, objIndex, GL_DEFAULT_PACMAN_Z, VgSetPoint(self.pacmanObj.Position()[0], self.pacmanObj.Position()[1]))
+            VgQueueAddObjectToDraw(self.vgBuffer, objIndex, GL_DEFAULT_PACMAN_Z, self.pacmanObj.Position())
 
     #Processando as teclas
     def KeyPressed(self, keyId):
@@ -529,6 +876,7 @@ class MainWindow:
                 self.pacmanObj.Direction(PACMAN_DIRECTION.UP)
             elif (keyId == pyxel.KEY_DOWN):
                 self.pacmanObj.Direction(PACMAN_DIRECTION.DOWN)
+
 
     #Carrega o mapa no frame atual
     def LoadMap(self):
@@ -640,4 +988,4 @@ class MainWindow:
 
 #Inicia o jogo com as dimensões a serem definidas:
 if (__name__ == "__main__"):
-    MainWindow((255, 255))
+    MainWindow((GL_SCR_WIDTH + 1, GL_SCR_HEIGHT + 1))
