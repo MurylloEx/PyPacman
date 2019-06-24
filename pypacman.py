@@ -1,7 +1,7 @@
 import pyxel
-from enum import Enum, IntEnum
-from random import randint
 import pygame
+from random import randint
+from enum import Enum, IntEnum
 
 #region Enumeradores do jogo.
 
@@ -111,6 +111,7 @@ class GAME_STATE(IntEnum):
     PAUSED  = 0x0000
     READY   = 0x0001
     RUNNING = 0x0002
+    FREEZE  = 0x0003
 
 #endregion
 
@@ -184,7 +185,7 @@ def VgQueueGetElementsById(pVgBuffer: list, objId: PACMAN_SPRITES_ID):
 def VgQueueMoveBuffer(pToVgBuffer: list, pFromVgBuffer: list):
     vgObj = VgQueueNextObjectToDraw(pFromVgBuffer)
     while (vgObj != None):
-        VgQueueAddObjectToDraw(pToVgBuffer, vgObj[0], vgObj[1], (vgObj[3][0], vgObj[3][1]))
+        VgQueueAddObjectToDraw(pToVgBuffer, vgObj[0], vgObj[1], vgObj[2], vgObj[3])
         vgObj = VgQueueNextObjectToDraw(pFromVgBuffer)
 
 #Copia o conteúdo de um buffer VG para outro buffer VG.
@@ -226,6 +227,15 @@ def OpScrClearScreen():
 
 #endregion
 
+#region Funções de operação com SOM
+
+def SndProcQueueAdd(filename: str):
+    if (not pygame.get_init()):
+        pygame.init()
+    return pygame.mixer.Sound(filename)
+
+#endregion
+
 #Flags globais de Vida, Score e tamanho de sprites
 GL_FLAG_SPRITE_SIZE: tuple      = VgSetSize(16, 16)
 GL_FLAG_MAP_SPRITE_SIZE: tuple  = VgSetSize(4, 4)
@@ -241,6 +251,16 @@ GL_DEFAULT_PACMAN_Z = 3
 #Correção do comprimento de tela
 GL_SCR_WIDTH   = 255 - 1
 GL_SCR_HEIGHT  = 255 - 1
+
+#Buffer de som do jogo
+GL_SOUND_BUFFER: list = []
+
+SND_PACMAN_DEATH        = SndProcQueueAdd("C:\\Users\\Murilo\\Desktop\\ZwQuerySystemInformation\\UPE Homework\\Programação 1\\Pacman\\pacman_death.wav")
+SND_PACMAN_BEGINNING    = SndProcQueueAdd("C:\\Users\\Murilo\\Desktop\\ZwQuerySystemInformation\\UPE Homework\\Programação 1\\Pacman\\pacman_beginning.wav")
+SND_PACMAN_EATFRUIT     = SndProcQueueAdd("C:\\Users\\Murilo\\Desktop\\ZwQuerySystemInformation\\UPE Homework\\Programação 1\\Pacman\\pacman_eatfruit.wav")
+SND_PACMAN_EATGHOST     = SndProcQueueAdd("C:\\Users\\Murilo\\Desktop\\ZwQuerySystemInformation\\UPE Homework\\Programação 1\\Pacman\\pacman_eatghost.wav")
+SND_PACMAN_INTERMISSION = SndProcQueueAdd("C:\\Users\\Murilo\\Desktop\\ZwQuerySystemInformation\\UPE Homework\\Programação 1\\Pacman\\pacman_intermission.wav")
+SND_PACMAN_CHOMP        = SndProcQueueAdd("C:\\Users\\Murilo\\Desktop\\ZwQuerySystemInformation\\UPE Homework\\Programação 1\\Pacman\\pacman_chomp.wav")
 
 #Global Map Coordinates
 GL_MAP_WALLS : list = [ [(14, 0), (GL_SCR_WIDTH - 14, 2)], 
@@ -262,7 +282,7 @@ GL_MAP_WALLS : list = [ [(14, 0), (GL_SCR_WIDTH - 14, 2)],
                         [(94, 102), (163, 160)], 
                         [(75, 133), (75 + 2, 179)],
                         [(180, 133), (180 + 2, 179)], 
-                        [(94, 177), (163, 179)], 
+                        [(94, 177), (163, 179)], #
                         [(33, 66 + 17), (33 + 25, 116)],
                         [(199, 66 + 17), (199 + 25, 116)], 
                         [(33, 116 + 17), (33 + 25, 179)], 
@@ -403,19 +423,19 @@ class Pacman:
     def MatchPos(self, startPos: tuple, endPos: tuple, nextPos: tuple):
         pacPosS = nextPos
         pacPosE = VgSetPoint(pacPosS[0] + 15, pacPosS[1] + 15)
-        wallSzX : int = (endPos[0] - startPos[0])
-        wallSzY : int = (endPos[1] - startPos[1])
-        bCond1 : bool = (pacPosE[0] >= startPos[0]              >= pacPosS[0]   and pacPosE[1]  >= startPos[1]              >= pacPosS[1]) 
-        bCond2 : bool = (pacPosE[0] >= endPos[0]                >= pacPosS[0]   and pacPosE[1]  >= endPos[1]                >= pacPosS[1])
-        bCond3 : bool = (pacPosE[0] >= startPos[0] + wallSzX    >= pacPosS[0]   and pacPosE[1]  >= startPos[1]              >= pacPosS[1])
-        bCond4 : bool = (pacPosE[0] >= startPos[0]              >= pacPosS[0]   and pacPosE[1]  >= startPos[1] + wallSzY    >= pacPosS[1])
-        bCond5 : bool = (endPos[0]  >= pacPosS[0]               >= startPos[0]  and endPos[1]   >= pacPosS[1]               >= startPos[1])
-        bCond6 : bool = (endPos[0]  >= pacPosE[0]               >= startPos[0]  and endPos[1]   >= pacPosE[1]               >= startPos[1])
-        bCond7 : bool = (endPos[0]  >= pacPosS[0] + 15          >= startPos[0]  and endPos[1]   >= pacPosS[1]               >= startPos[1])
-        bCond8 : bool = (endPos[0]  >= pacPosS[0]               >= startPos[0]  and endPos[1]   >= pacPosS[1] + 15          >= startPos[1])
+        wallSzX : int = (endPos[0] - startPos[0]) + 0
+        wallSzY : int = (endPos[1] - startPos[1]) + 0
+        bCond1 : bool = (pacPosE[0] >= startPos[0] >= pacPosS[0] and pacPosE[1] >= startPos[1] >= pacPosS[1]) 
+        bCond2 : bool = (pacPosE[0] >= endPos[0] >= pacPosS[0] and pacPosE[1] >= endPos[1] >= pacPosS[1])
+        bCond3 : bool = (pacPosE[0] >= startPos[0] + wallSzX >= pacPosS[0] and pacPosE[1] >= startPos[1] >= pacPosS[1])
+        bCond4 : bool = (pacPosE[0] >= startPos[0] >= pacPosS[0] and pacPosE[1] >= startPos[1] + wallSzY >= pacPosS[1])
+        bCond5 : bool = (endPos[0] >= pacPosS[0] >= startPos[0] and endPos[1] >= pacPosS[1] >= startPos[1])
+        bCond6 : bool = (endPos[0] >= pacPosE[0] >= startPos[0] and endPos[1] >= pacPosE[1] >= startPos[1])
+        bCond7 : bool = (endPos[0] >= pacPosS[0] + 15 >= startPos[0] and endPos[1] >= pacPosS[1] >= startPos[1])
+        bCond8 : bool = (endPos[0] >= pacPosS[0] >= startPos[0] and endPos[1] >= pacPosS[1] + 15 >= startPos[1])
         return (bCond1 or bCond2 or bCond3 or bCond4 or bCond5 or bCond6 or bCond7 or bCond8)
     
-    def CheckForEat(self, pVgFoodBuffer: list, ghosts: list, pVgBuffer: list):
+    def CheckForEat(self, pVgFoodBuffer: list, ghosts: list, pVgBuffer: list, pInstanceGame):
         pacPos: tuple = VgSetPoint(self.Position()[0] + 7.5, self.Position()[1] + 7.5)
         for k in range(len(pVgFoodBuffer)):
             if (k <= len(pVgFoodBuffer) - 1):
@@ -426,10 +446,13 @@ class Pacman:
                     global GL_FLAG_SCORE
                     if (pVgFoodBuffer[k][0][2] == PACMAN_SPRITES_ID.WHITE_FOOD):
                         pVgFoodBuffer.remove(pVgFoodBuffer[k])
+                        SND_PACMAN_CHOMP.play()
+                        SND_PACMAN_CHOMP.fadeout(400)
                         GL_FLAG_SCORE += 10
                         break
                     if (pVgFoodBuffer[k][0][2] == PACMAN_SPRITES_ID.BIG_WHITE_FOOD):
                         pVgFoodBuffer.remove(pVgFoodBuffer[k])
+                        SND_PACMAN_EATFRUIT.play()
                         for k in range(len(ghosts)):
                             ghosts[k].Eatable(True)
                         GL_FLAG_SCORE += 200
@@ -440,7 +463,7 @@ class Pacman:
                 dx: float = abs(pacPos[0] - (pVgBuffer[k][2][0] + 7.5))
                 dy: float = abs(pacPos[1] - (pVgBuffer[k][2][1] + 7.5))
                 drel: float = abs((dx**2 + dy**2)**1/2)
-                if (drel <= 50):
+                if (drel <= 60):
                     if (pVgBuffer[k][0][2] == PACMAN_SPRITES_ID.GHOST_BLUE_DOWN or 
                         pVgBuffer[k][0][2] == PACMAN_SPRITES_ID.GHOST_BLUE_UP or
                         pVgBuffer[k][0][2] == PACMAN_SPRITES_ID.GHOST_BLUE_LEFT or
@@ -457,11 +480,26 @@ class Pacman:
                         pVgBuffer[k][0][2] == PACMAN_SPRITES_ID.GHOST_PINK_UP or
                         pVgBuffer[k][0][2] == PACMAN_SPRITES_ID.GHOST_PINK_LEFT or
                         pVgBuffer[k][0][2] == PACMAN_SPRITES_ID.GHOST_PINK_RIGHT):
-                        print("PACMAN MORREU, TENTOU COMER UM FANTASMINHA!")
+                        #print("PACMAN MORREU, TENTOU COMER UM FANTASMINHA!")
+                        approxPos = pVgBuffer[k][2]
+                        for k in range(len(ghosts)):
+                            if (ghosts[k].Position() == approxPos):
+                                SND_PACMAN_DEATH.play()
+                                pInstanceGame.PlayerDied()
+                                print("Pacman morreu na posição: " + str(pacPos))
+                                break
                         break
                     if (pVgBuffer[k][0][2] == PACMAN_SPRITES_ID.GHOST_EATABLE_DARK or
                         pVgBuffer[k][0][2] == PACMAN_SPRITES_ID.GHOST_EATABLE_WHITE):
-                        print("PACMAN COMEU UM FANTASMINHA!")
+                        approxPos = pVgBuffer[k][2]
+                        for k in range(len(ghosts)):
+                            if (ghosts[k].Position() == approxPos):
+                                ghosts[k].Kill(True)
+                                SND_PACMAN_EATGHOST.play()
+                                print(ghosts[k].Position())
+                                print("PACMAN COMEU UM FANTASMINHA!")
+                                break
+                        break
 
 class Ghost:
 
@@ -476,10 +514,23 @@ class Ghost:
         self.bStarted: bool = False
         self.drel: int = 0
         self.lastDirection: GHOST_DIRECTION = None
+        self.tick: int = 0
+        self.lastTick: int = 0
+        self.killed: bool = False
+        self.__initPos: tuple = initPos
+        self.__initVel: int = initVel
+        self.__direction: GHOST_DIRECTION = direction
+        self.__ghostColor: GHOST_COLOR = ghostColor
         self.SpriteId()
         self.SpritePos()
 
+    def Tick(self):
+        self.tick += 1
+        if (self.tick - self.lastTick >= 400 and self.Eatable() == True):
+            self.Eatable(False)
+
     def Move(self):
+        self.Tick()
         if (self.bStarted == False):
             #Iniciar deslocamento de GL_FLAG_SPRITE_SIZE[0] pixels de forma unidirecional
             if (self.drel >= GL_FLAG_SPRITE_SIZE[0] + 1):
@@ -631,6 +682,7 @@ class Ghost:
     def Eatable(self, bNewValue: bool = None):
         if (bNewValue != None):
             self.eatable = bNewValue
+            self.lastTick = self.tick
             return self.eatable
         else:
             return self.eatable
@@ -675,7 +727,7 @@ class Ghost:
         #print((bRight, bLeft, bTop, bDown, self.color))
         RND_GHOST_MOVEMENT: int = randint(0, 4)
         if (LOCK_MOVEMENT == False):
-            if (RND_GHOST_MOVEMENT == 0):
+            if   (RND_GHOST_MOVEMENT == 0):
                 if (bRight and self.Direction() != GHOST_DIRECTION.LEFT):
                     self.Direction(GHOST_DIRECTION.RIGHT)
                     return None
@@ -741,23 +793,36 @@ class Ghost:
                     self.Direction(GHOST_DIRECTION.DOWN)
                     return None
 
+    def Kill(self, bKilled: bool = None):
+        if (bKilled != None):
+            self.killed = bKilled
+            return self.killed
+        else:
+            return self.killed
 
-        
+    def Reset(self):
+        self.__init__(self.__initPos, self.__initVel, self.__direction, self.__ghostColor)
+        self.CancelCollision(True)
+
 class MainWindow:
 
     def __init__(self, wndSize):
         self.gamestate: GAME_STATE = GAME_STATE.READY
         self.vgBuffer = VgQueueCreateBuffer()
         self.vgFoodBuffer = VgQueueCreateBuffer()
+        self.stopFrame: int = 0
+        self.changeState: GAME_STATE = None
         self.foodLoaded: bool = False
+        self.playerKilled: bool == False
         self.pacmanObj = None
         self.orangeGhost = None
         self.redGhost = None
         self.blueGhost = None
         self.pinkGhost = None
+        pygame.init()
         pyxel.init(wndSize[0], wndSize[1], fps=40)
-        pyxel.mouse(True)
-        pyxel.load("C:\\Users\\Aluno\\Desktop\\pacman.pyxel")
+        #pyxel.mouse(True)
+        pyxel.load("C:\\Users\\Murilo\\Desktop\\ZwQuerySystemInformation\\UPE Homework\\Programação 1\\Pacman\\pacman.pyxel")
         pyxel.run(self.UpdateCallback, self.DrawCallback)
     
     #Atualizando as posições e a dinâmica do jogo. Este método é IMUTÁVEL.
@@ -812,7 +877,10 @@ class MainWindow:
             vgObjLogo = VgAcquireObjectIndex(PACMAN_SPRITES_POS.PACMAN_LOGO, PACMAN_SPRITES_ID.PACMAN_LOGO, 1, VgSetSize(253, 51))
             OpScrDrawImageByObjectIndex(vgObjLogo, VgSetPoint(0, 50))
             OpScrWriteTextInPosition("PRESSIONE \"P\" PARA CONTINUAR O JOGO", VgSetPoint(pyxel.width / 2 - pyxel.width / 4 - 10, pyxel.height / 2), pyxel.frame_count % 16)
-
+        elif (self.gamestate == GAME_STATE.FREEZE):
+            if (pyxel.frame_count >= self.stopFrame):
+                self.gamestate = self.changeState
+            self.EvtGameFreeze()
 
     #Antes de processar as teclas
     def BeforeKeyProcessed(self):
@@ -852,7 +920,7 @@ class MainWindow:
             VgQueueAddObjectToDraw(self.vgBuffer, objIndex, GL_DEFAULT_GHOST_Z, self.pinkGhost.Position())
         if (self.pacmanObj != None):
             self.pacmanObj.Move()
-            self.pacmanObj.CheckForEat(self.vgFoodBuffer, [self.orangeGhost, self.pinkGhost, self.redGhost, self.blueGhost], self.vgBuffer)
+            self.pacmanObj.CheckForEat(self.vgFoodBuffer, [self.orangeGhost, self.pinkGhost, self.redGhost, self.blueGhost], self.vgBuffer, self)
             objIndex = VgAcquireObjectIndex(self.pacmanObj.SpritePos(), self.pacmanObj.SpriteId(), 0, GL_FLAG_SPRITE_SIZE, 0)
             VgQueueAddObjectToDraw(self.vgBuffer, objIndex, GL_DEFAULT_PACMAN_Z, self.pacmanObj.Position())
 
@@ -878,57 +946,17 @@ class MainWindow:
             elif (keyId == pyxel.KEY_DOWN):
                 self.pacmanObj.Direction(PACMAN_DIRECTION.DOWN)
 
-
     #Carrega o mapa no frame atual
     def LoadMap(self):
         SCR_WIDTH   = pyxel.width - 1
         SCR_HEIGHT  = pyxel.height - 1
         COLOR_WALL  = 13
-        #Margem superior
-        pyxel.rect(14, 0, SCR_WIDTH - 14, 2, COLOR_WALL)
-        #Margem lateral esquerda
-        pyxel.rect(14, 0, 14 + 2, SCR_HEIGHT - 20, COLOR_WALL)
-        #Bloco 1
-        pyxel.rect(33, 19, 33 + 25, 19 + 20, COLOR_WALL)
-        #Bloco 2
-        pyxel.rect(75, 19, 75 + 35, 19 + 20, COLOR_WALL)
-        #Divisória central superior
-        pyxel.rect(127, 0, 127 + 3, 39, COLOR_WALL)
-        #Bloco 3
-        pyxel.rect(147, 19, 147 + 35, 19 + 20, COLOR_WALL)
-        #Bloco 4
-        pyxel.rect(199, 19, 199 + 25, 19 + 20, COLOR_WALL)
-        #Margem lateral direita
-        pyxel.rect(241, 0, 241 + 2, SCR_HEIGHT - 20, COLOR_WALL)
-        #Bloco 5
-        pyxel.rect(33, 56, 33 + 25, 56 + 10, COLOR_WALL)
-        #Bloco 6
-        pyxel.rect(75, 56, 75 + 2, 56 + 60, COLOR_WALL)
-        #Bloco 7
-        pyxel.rect(94, 56, 163, 56 + 10, COLOR_WALL)
-        #Bloco 8
-        pyxel.rect(180, 56, 180 + 2, 56 + 60, COLOR_WALL)
-        #Bloco 9
-        pyxel.rect(199, 56, 199 + 25, 56 + 10, COLOR_WALL)
-        #Divisoria horizontal do bloco 6
-        pyxel.rect(77, 83, 110, 66 + 19, COLOR_WALL)
-        #Divisoria vertical do bloco 7
-        pyxel.rect(127, 66, 130, 66 + 19, COLOR_WALL)
-        #Divisoria horizontal do bloco 8
-        pyxel.rect(147, 83, 180, 66 + 19, COLOR_WALL)
-        #Buraco do centro
-        pyxel.rectb(94, 102, 163, 160, COLOR_WALL)
-        pyxel.rect(75, 133, 75 + 2, 179, COLOR_WALL)
-        pyxel.rect(180, 133, 180 + 2, 179, COLOR_WALL)
-        pyxel.rect(94, 177, 163, 179, COLOR_WALL)
-        pyxel.rect(33, 66 + 17, 33 + 25, 116, COLOR_WALL)
-        pyxel.rect(199, 66 + 17, 199 + 25, 116, COLOR_WALL)
-        pyxel.rect(33, 116 + 17, 33 + 25, 179, COLOR_WALL)
-        pyxel.rect(199, 116 + 17, 199 + 25, 179, COLOR_WALL)
-        pyxel.rect(33, 179 + 17, 33 + 25, SCR_HEIGHT - 39, COLOR_WALL)
-        pyxel.rect(75, 179 + 17, 182, SCR_HEIGHT - 39, COLOR_WALL)
-        pyxel.rect(199, 179 + 17, 199 + 25, SCR_HEIGHT - 39, COLOR_WALL)
-        pyxel.rect(14, SCR_HEIGHT - 22, SCR_WIDTH - 14, SCR_HEIGHT - 20, COLOR_WALL)
+        global GL_MAP_WALLS
+        for k in range(len(GL_MAP_WALLS)):
+            if (GL_MAP_WALLS[k][0][0] == 94 and GL_MAP_WALLS[k][0][1] == 102 and GL_MAP_WALLS[k][1][0] == 163 and GL_MAP_WALLS[k][1][1] == 160):
+                pyxel.rectb(GL_MAP_WALLS[k][0][0], GL_MAP_WALLS[k][0][1], GL_MAP_WALLS[k][1][0], GL_MAP_WALLS[k][1][1], COLOR_WALL)
+            else:
+                pyxel.rect(GL_MAP_WALLS[k][0][0], GL_MAP_WALLS[k][0][1], GL_MAP_WALLS[k][1][0], GL_MAP_WALLS[k][1][1], COLOR_WALL)
         if (self.foodLoaded == False):
             self.foodLoaded = True
             self.CreateFood(VgSetPoint(17, 5), 0, 10, 22)
@@ -974,6 +1002,7 @@ class MainWindow:
             self.CreateFood(VgSetPoint(164, 172), 0, 10, 1)
         VgQueueCopyBuffer(self.vgBuffer, self.vgFoodBuffer)
 
+    #Cria a trilha de comidas
     def CreateFood(self, point1, xspacing, yspacing, foodCount = 20):
         xInc = 0
         yInc = 0
@@ -983,9 +1012,61 @@ class MainWindow:
             xInc += xspacing
             yInc += yspacing
 
+    #Cria a comidinha especial
     def CreateBigFood(self, point):
         objIndex = VgAcquireObjectIndex(PACMAN_SPRITES_POS.BIG_WHITE_FOOD, PACMAN_SPRITES_ID.BIG_WHITE_FOOD, 0, GL_FLAG_SPRITE_SIZE, 0)
         VgQueueAddObjectToDraw(self.vgFoodBuffer, objIndex, GL_DEFAULT_FOOD_Z, point)
+
+    #Congela o jogo por um intervalo de tempo e depois disso muda o estato para changeState.
+    def FreezeState(self, interval: int, changeState: GAME_STATE):
+        if (interval > 0):
+            self.stopFrame = pyxel.frame_count + interval
+            self.gamestate = GAME_STATE.FREEZE
+            self.changeState = changeState
+
+    #Evento disparado enquanto o jogo estiver congelado.
+    def EvtGameFreeze(self):
+        global GL_FLAG_LIFES
+        if (self.playerKilled == True):
+            if (self.playerKilled == True and GL_FLAG_LIFES < 0):
+                self.playerKilled = False
+                self.RestartGame()
+
+    def PlayerDied(self):
+        global GL_FLAG_LIFES
+        if (self.gamestate != GAME_STATE.FREEZE):
+            self.pacmanObj.Position(VgSetPoint(121, 40))
+            self.pacmanObj.Direction(PACMAN_DIRECTION.LEFT)
+            self.redGhost.Reset()
+            self.orangeGhost.Reset()
+            self.pinkGhost.Reset()
+            self.blueGhost.Reset()
+            self.playerKilled = True
+            if (GL_FLAG_LIFES - 1 >= 0):
+                GL_FLAG_LIFES -= 1
+                self.FreezeState(120, GAME_STATE.RUNNING)
+            else:
+                print("Você perdeu o jogo!")
+                GL_FLAG_LIFES -= 1
+                self.FreezeState(120, GAME_STATE.READY)
+        
+    def RestartGame(self):
+        global GL_FLAG_LIFES
+        global GL_FLAG_SCORE
+        GL_FLAG_LIFES = 3
+        GL_FLAG_SCORE = 0
+        self.gamestate: GAME_STATE = GAME_STATE.READY
+        self.vgBuffer = VgQueueCreateBuffer()
+        self.vgFoodBuffer = VgQueueCreateBuffer()
+        self.stopFrame: int = 0
+        self.changeState: GAME_STATE = None
+        self.foodLoaded: bool = False
+        self.playerKilled: bool == False
+        self.pacmanObj = None
+        self.orangeGhost = None
+        self.redGhost = None
+        self.blueGhost = None
+        self.pinkGhost = None
 
 #Inicia o jogo com as dimensões a serem definidas:
 if (__name__ == "__main__"):
