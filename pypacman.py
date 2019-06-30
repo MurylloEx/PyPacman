@@ -100,6 +100,7 @@ class GHOST_DIRECTION(IntEnum):
     LEFT    = 1
     UP      = 2
     DOWN    = 3
+    STOP    = 4
 
 class GHOST_COLOR(IntEnum):
     COLOR_RED       = 1
@@ -251,9 +252,6 @@ GL_DEFAULT_PACMAN_Z = 3
 #Correção do comprimento de tela
 GL_SCR_WIDTH   = 255 - 1
 GL_SCR_HEIGHT  = 255 - 1
-
-#Buffer de som do jogo
-GL_SOUND_BUFFER: list = []
 
 SND_PACMAN_DEATH        = SndProcQueueAdd("C:\\Users\\Murilo\\Desktop\\ZwQuerySystemInformation\\UPE Homework\\Programação 1\\Pacman\\pacman_death.wav")
 SND_PACMAN_BEGINNING    = SndProcQueueAdd("C:\\Users\\Murilo\\Desktop\\ZwQuerySystemInformation\\UPE Homework\\Programação 1\\Pacman\\pacman_beginning.wav")
@@ -496,8 +494,7 @@ class Pacman:
                             if (ghosts[k].Position() == approxPos):
                                 ghosts[k].Kill(True)
                                 SND_PACMAN_EATGHOST.play()
-                                print(ghosts[k].Position())
-                                print("PACMAN COMEU UM FANTASMINHA!")
+                                print("Pacman comeu um fantasminha na posição: " + str(ghosts[k].Position()))
                                 break
                         break
 
@@ -516,6 +513,7 @@ class Ghost:
         self.lastDirection: GHOST_DIRECTION = None
         self.tick: int = 0
         self.lastTick: int = 0
+        self.lastKill: int = 0
         self.killed: bool = False
         self.__initPos: tuple = initPos
         self.__initVel: int = initVel
@@ -528,6 +526,8 @@ class Ghost:
         self.tick += 1
         if (self.tick - self.lastTick >= 400 and self.Eatable() == True):
             self.Eatable(False)
+        if (self.tick - self.lastKill >= 240 and self.lastKill != 0):
+            self.Reset()
 
     def Move(self):
         self.Tick()
@@ -591,6 +591,16 @@ class Ghost:
             return self.velocity
 
     def SpritePos(self):
+        if (self.Kill()):
+            if (self.Direction() == GHOST_DIRECTION.LEFT):
+                return PACMAN_SPRITES_POS.GHOST_EYES_LEFT
+            elif (self.Direction() == GHOST_DIRECTION.RIGHT):
+                return PACMAN_SPRITES_POS.GHOST_EYES_RIGHT
+            elif (self.Direction() == GHOST_DIRECTION.DOWN):
+                return PACMAN_SPRITES_POS.GHOST_EYES_DOWN
+            elif (self.Direction() == GHOST_DIRECTION.UP):
+                return PACMAN_SPRITES_POS.GHOST_EYES_UP
+
         if (self.eatable == False):
             #NÃO COMESTÍVEL
             if (self.color == GHOST_COLOR.COLOR_ORANGE):
@@ -638,6 +648,16 @@ class Ghost:
 
     def SpriteId(self):
         spritePos = self.SpritePos()
+        if (self.Kill()):
+            if (spritePos == PACMAN_SPRITES_POS.GHOST_EYES_UP):
+                return PACMAN_SPRITES_ID.GHOST_EYES_UP
+            elif (spritePos == PACMAN_SPRITES_POS.GHOST_EYES_DOWN):
+                return PACMAN_SPRITES_ID.GHOST_EYES_DOWN
+            elif (spritePos == PACMAN_SPRITES_POS.GHOST_EYES_LEFT):
+                return PACMAN_SPRITES_ID.GHOST_EYES_LEFT
+            elif (spritePos == PACMAN_SPRITES_POS.GHOST_EYES_RIGHT):
+                return PACMAN_SPRITES_ID.GHOST_EYES_RIGHT
+
         if (self.eatable == False):
             #NÃO COMESTÍVEL
             if (spritePos == PACMAN_SPRITES_POS.GHOST_ORANGE_UP):
@@ -796,6 +816,13 @@ class Ghost:
     def Kill(self, bKilled: bool = None):
         if (bKilled != None):
             self.killed = bKilled
+            if (self.killed):
+                self.CancelCollision(False)
+                self.position = self.__initPos
+                self._direction = self.__direction
+                self.bStarted = False
+                self.drel = 0
+                self.lastKill = self.tick
             return self.killed
         else:
             return self.killed
