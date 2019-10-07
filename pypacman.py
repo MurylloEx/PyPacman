@@ -254,12 +254,12 @@ GL_DEFAULT_PACMAN_Z = 3
 GL_SCR_WIDTH   = 255 - 1
 GL_SCR_HEIGHT  = 255 - 1
 
-SND_PACMAN_DEATH        = SndProcQueueAdd("C:\\Users\\Murilo\\Desktop\\ZwQuerySystemInformation\\UPE Homework\\Programação 1\\Pacman\\pacman_death.wav")
-SND_PACMAN_BEGINNING    = SndProcQueueAdd("C:\\Users\\Murilo\\Desktop\\ZwQuerySystemInformation\\UPE Homework\\Programação 1\\Pacman\\pacman_beginning.wav")
-SND_PACMAN_EATFRUIT     = SndProcQueueAdd("C:\\Users\\Murilo\\Desktop\\ZwQuerySystemInformation\\UPE Homework\\Programação 1\\Pacman\\pacman_eatfruit.wav")
-SND_PACMAN_EATGHOST     = SndProcQueueAdd("C:\\Users\\Murilo\\Desktop\\ZwQuerySystemInformation\\UPE Homework\\Programação 1\\Pacman\\pacman_eatghost.wav")
-SND_PACMAN_INTERMISSION = SndProcQueueAdd("C:\\Users\\Murilo\\Desktop\\ZwQuerySystemInformation\\UPE Homework\\Programação 1\\Pacman\\pacman_intermission.wav")
-SND_PACMAN_CHOMP        = SndProcQueueAdd("C:\\Users\\Murilo\\Desktop\\ZwQuerySystemInformation\\UPE Homework\\Programação 1\\Pacman\\pacman_chomp.wav")
+SND_PACMAN_DEATH        = SndProcQueueAdd("pacman_death.wav")
+SND_PACMAN_BEGINNING    = SndProcQueueAdd("pacman_beginning.wav")
+SND_PACMAN_EATFRUIT     = SndProcQueueAdd("pacman_eatfruit.wav")
+SND_PACMAN_EATGHOST     = SndProcQueueAdd("pacman_eatghost.wav")
+SND_PACMAN_INTERMISSION = SndProcQueueAdd("pacman_intermission.wav")
+SND_PACMAN_CHOMP        = SndProcQueueAdd("pacman_chomp.wav")
 
 #Global Map Coordinates
 GL_MAP_WALLS : list = [ [(14, 0), (GL_SCR_WIDTH - 14, 2)], 
@@ -852,7 +852,7 @@ class MainWindow:
         pygame.init()
         pyxel.init(wndSize[0], wndSize[1], fps=40)
         #pyxel.mouse(True)
-        pyxel.load("C:\\Users\\Murilo\\Desktop\\ZwQuerySystemInformation\\UPE Homework\\Programação 1\\Pacman\\pacman.pyxel")
+        pyxel.load("pacman.pyxel")
         pyxel.run(self.UpdateCallback, self.DrawCallback)
     
     #Atualizando as posições e a dinâmica do jogo. Este método é IMUTÁVEL.
